@@ -30,7 +30,7 @@ internal class ServerRemoteExecutionHandler : ITestExecutionHandler
     {
         try
         {
-            string executablePath = config["pixel_run_executable"] ?? throw new ArgumentNullException("No value provided for 'pixel_run_exeutable' configuration setting");
+            string executablePath = config["pixelExecutable"] ?? throw new ArgumentNullException("No value provided for 'pixel_run_exeutable' configuration setting");
             string executableName = Path.GetFileName(executablePath);
             if (Process.GetProcessesByName(executableName).Any())
             {
@@ -40,7 +40,7 @@ internal class ServerRemoteExecutionHandler : ITestExecutionHandler
             var process = Process.Start(new ProcessStartInfo()
             {
                 WorkingDirectory = Path.GetDirectoryName(executablePath),
-                FileName = executableName,
+                FileName = executablePath,
                 Arguments = $"run template \"{templateName}\""
             }) ?? throw new Exception("Process failed to start");
 
