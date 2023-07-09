@@ -73,7 +73,7 @@ connection.On("CanExecuteNew", () =>
     return canExecuteNew;
 });
 
-connection.On<string, string>("ExecuteTemplate", async (template, handler) =>
+connection.On<string, string, string>("ExecuteTemplate", async (template, handler, arguments) =>
 {
     try
     {
@@ -107,7 +107,20 @@ connection.On<string, string>("ExecuteTemplate", async (template, handler) =>
             default:
                 throw new NotSupportedException($"Handler {handler} is not supported");
         }
-        _ =  executionHadler.ExecuteTestAsync(template);
+        Dictionary<string, string> handlerArgs = new();
+        if (!string.IsNullOrEmpty(arguments))
+        {
+            foreach (var arg in arguments.Split(','))
+            {
+                var keyValuePair = arg.Split('=');
+                if(keyValuePair.Length != 2)
+                {
+                    throw new ArgumentException($"Argument {arg} could not be parsed.");
+                }
+                handlerArgs.Add(keyValuePair[0], keyValuePair[1]);
+            }
+        }
+        _ = executionHadler.ExecuteTestAsync(template, handlerArgs);
         await Task.CompletedTask;
     }
     catch (Exception ex)

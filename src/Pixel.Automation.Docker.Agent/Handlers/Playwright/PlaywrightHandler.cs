@@ -17,12 +17,12 @@ internal abstract class PlaywrightHandler : DockerComposeExecutionHandler
 
     protected abstract string GetBrowserName();
 
-    public override async Task ExecuteTestAsync(string templateName)
+    public override async Task ExecuteTestAsync(string templateName, Dictionary<string, string> arguments)
     {
-        var networks = CreateRequiredNetworks(templateName);
+        var networks = CreateRequiredNetworks(templateName, arguments);
         try
         {
-            var file = await GetComposeFile(templateName, networks);
+            var file = await GetComposeFile(templateName, networks, arguments);
 
             using (var svc = new Ductus.FluentDocker.Builders.Builder()
                               .UseContainer()
@@ -68,12 +68,12 @@ internal abstract class PlaywrightHandler : DockerComposeExecutionHandler
     }
 
 
-    protected override IEnumerable<INetworkService> CreateRequiredNetworks(string templateName)
+    protected override IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> arguments)
     {
         return Enumerable.Empty<INetworkService>();
     }
 
-    protected async override Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks)
+    protected async override Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> arguments)
     {
         var templateToUse = Path.Combine(Environment.CurrentDirectory, "Templates", GetDockerTemplateFile());
         if (!File.Exists(templateToUse))

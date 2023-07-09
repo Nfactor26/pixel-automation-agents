@@ -26,7 +26,7 @@ internal class ServerRemoteExecutionHandler : ITestExecutionHandler
     }
 
     /// </inheritdoc>    
-    public async Task ExecuteTestAsync(string templateName)
+    public async Task ExecuteTestAsync(string templateName, Dictionary<string, string> arguments)
     {
         try
         {
