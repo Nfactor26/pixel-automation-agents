@@ -36,7 +36,7 @@ internal abstract class WebDriverHandler : DockerComposeExecutionHandler
     protected abstract string GetDockerTemplateFile();
 
     /// </inheritdoc> 
-    protected override IEnumerable<INetworkService> CreateRequiredNetworks(string templateName)
+    protected override IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> arguments)
     {
         var networkName = string.Format(GetNetworkTemplateName(), templateName);
         if (dockerHost.GetNetworks().Any(n => n.Name.Equals(networkName)))
@@ -50,7 +50,7 @@ internal abstract class WebDriverHandler : DockerComposeExecutionHandler
     }
 
     /// </inheritdoc> 
-    protected override async Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks)
+    protected override async Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> arguments)
     {
         var templateToUse = Path.Combine(Environment.CurrentDirectory, "Templates", GetDockerTemplateFile());
         if (!File.Exists(templateToUse))

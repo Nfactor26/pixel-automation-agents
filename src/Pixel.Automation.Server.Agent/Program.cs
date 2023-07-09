@@ -67,7 +67,7 @@ connection.On("CanExecuteNew", () =>
     return canExecuteNew;
 });
 
-connection.On<string, string>("ExecuteTemplate", async (template, handler) =>
+connection.On<string, string, string>("ExecuteTemplate", async (template, handler, arguments) =>
 {
     try
     {
@@ -79,7 +79,7 @@ connection.On<string, string>("ExecuteTemplate", async (template, handler) =>
             throw new Exception($"Agent doesn't have a handler for type : {handler}");
         }
         var executionHadler = new ServerRemoteExecutionHandler(config);
-        _ = executionHadler.ExecuteTestAsync(template);
+        _ = executionHadler.ExecuteTestAsync(template, null);
         await Task.CompletedTask;
     }
     catch (Exception ex)

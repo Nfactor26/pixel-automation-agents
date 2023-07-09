@@ -24,12 +24,12 @@ internal abstract class DockerComposeExecutionHandler : ITestExecutionHandler
     }
    
     /// </inheritdoc>  
-    public virtual async Task ExecuteTestAsync(string templateName)
+    public virtual async Task ExecuteTestAsync(string templateName, Dictionary<string, string> arguments)
     {       
-        var networks = CreateRequiredNetworks(templateName);
+        var networks = CreateRequiredNetworks(templateName, arguments);
         try
         {
-            var file = await GetComposeFile(templateName, networks);
+            var file = await GetComposeFile(templateName, networks, arguments);
 
             using (var svc = new Ductus.FluentDocker.Builders.Builder()
                               .UseContainer()
@@ -70,13 +70,13 @@ internal abstract class DockerComposeExecutionHandler : ITestExecutionHandler
     /// <param name="templateName"></param>
     /// <param name="networks"></param>
     /// <returns></returns>
-    protected abstract Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks);
+    protected abstract Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> arguments);
 
     /// <summary>
     /// Create networks required for the execution
     /// </summary>
     /// <param name="templateName"></param>
     /// <returns></returns>
-    protected abstract IEnumerable<INetworkService> CreateRequiredNetworks(string templateName);
+    protected abstract IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> arguments);
 
 }
