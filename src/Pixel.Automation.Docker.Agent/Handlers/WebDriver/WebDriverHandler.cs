@@ -1,5 +1,6 @@
 ﻿using Ductus.FluentDocker.Model.Containers;
 using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 
 namespace Pixel.Automation.Docker.Agent.Handlers.WebDriver;
 
@@ -8,13 +9,19 @@ namespace Pixel.Automation.Docker.Agent.Handlers.WebDriver;
 /// </summary>
 internal abstract class WebDriverHandler : DockerComposeExecutionHandler
 {
+    protected readonly Dictionary<string, string> defaultParameters = new()
+    {
+        { "pixel-run-image", "pixel-test-runner:latest" }
+    };
+
+
     /// <summary>
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public WebDriverHandler(IHostService dockerHost): base(dockerHost)
+    public WebDriverHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     {
-
+       AddDefaultParameters(defaultParameters);
     }
 
     /// <summary>
@@ -33,10 +40,13 @@ internal abstract class WebDriverHandler : DockerComposeExecutionHandler
     /// Get the template file for docker compose
     /// </summary>
     /// <returns></returns>
-    protected abstract string GetDockerTemplateFile();
+    protected virtual string GetDockerTemplateFile()
+    {
+        return templateHandler.DockerComposeFileName;
+    }
 
     /// </inheritdoc> 
-    protected override IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> arguments)
+    protected override IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> parameters)
     {
         var networkName = string.Format(GetNetworkTemplateName(), templateName);
         if (dockerHost.GetNetworks().Any(n => n.Name.Equals(networkName)))
@@ -50,7 +60,7 @@ internal abstract class WebDriverHandler : DockerComposeExecutionHandler
     }
 
     /// </inheritdoc> 
-    protected override async Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> arguments)
+    protected override async Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> parameters)
     {
         var templateToUse = Path.Combine(Environment.CurrentDirectory, "Templates", GetDockerTemplateFile());
         if (!File.Exists(templateToUse))
@@ -58,7 +68,9 @@ internal abstract class WebDriverHandler : DockerComposeExecutionHandler
             throw new FileNotFoundException("File doesn't exist", templateToUse);
         }
         string templateContent = await File.ReadAllTextAsync(templateToUse);
-        string generatedContent = string.Format(templateContent, networks.ElementAt(0).Name, templateName);
+        
+        string generatedContent = string.Format(templateContent,  templateHandler.Parameters["selenium-standalone-image"], templateHandler.Parameters["pixel-run-image"],
+            networks.ElementAt(0).Name, templateHandler.Parameters["grid-address"], templateName);
         string templateDirectory = Path.Combine(Environment.CurrentDirectory, "Temp", $"{templateName}-with-{GetBrowserName()}");
         Directory.CreateDirectory(templateDirectory);
         var saveToLocation = Path.Combine(templateDirectory, GetDockerTemplateFile());

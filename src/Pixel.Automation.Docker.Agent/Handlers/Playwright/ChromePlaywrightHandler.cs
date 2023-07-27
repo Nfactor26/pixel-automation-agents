@@ -1,4 +1,5 @@
 ﻿using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Docker.Agent.Handlers.Playwright;
 
 namespace Pixel.Automation.Docker.Agent.Handlers;
@@ -14,7 +15,7 @@ internal class ChromePlaywrightHandler : PlaywrightHandler
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public ChromePlaywrightHandler(IHostService dockerHost) : base(dockerHost)
+    public ChromePlaywrightHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     {
     }
 
@@ -22,11 +23,5 @@ internal class ChromePlaywrightHandler : PlaywrightHandler
     protected override string GetBrowserName()
     {
         return "chrome";
-    }
-
-    /// </inheritdoc> 
-    protected override string GetDockerTemplateFile()
-    {
-        return "playwright-chrome.yml";
     }
 }

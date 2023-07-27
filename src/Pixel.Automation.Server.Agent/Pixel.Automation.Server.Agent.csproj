@@ -11,4 +11,10 @@
     <ProjectReference Include="..\Pixel.Automation.Agents.Core\Pixel.Automation.Agents.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

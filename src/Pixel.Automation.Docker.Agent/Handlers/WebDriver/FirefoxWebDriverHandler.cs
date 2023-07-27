@@ -1,4 +1,5 @@
 ﻿using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Docker.Agent.Handlers.WebDriver;
 
 namespace Pixel.Automation.Docker.Agent.Handlers;
@@ -14,7 +15,7 @@ internal class FirefoxWebDriverHandler : WebDriverHandler
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public FirefoxWebDriverHandler(IHostService dockerHost) : base(dockerHost)
+    public FirefoxWebDriverHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     { 
     }
 
@@ -30,9 +31,11 @@ internal class FirefoxWebDriverHandler : WebDriverHandler
         return "pixel-webdriver-firefox-{0}";
     }
 
-    /// </inheritdoc> 
-    protected override string GetDockerTemplateFile()
+    /// </inheritdoc>
+    protected override void AddDefaultParameters(Dictionary<string, string> defaultParameters)
     {
-        return "webdriver-firefox-standalone.yml";
+        defaultParameters.Add("selenium-standalone-image", " selenium/standalone-firefox:latest");
+        defaultParameters.Add("grid-address", "http://firefox-standalone:4444");
+        base.AddDefaultParameters(defaultParameters);
     }
 }

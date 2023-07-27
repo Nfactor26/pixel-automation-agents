@@ -1,4 +1,5 @@
 ﻿using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Docker.Agent.Handlers.WebDriver;
 
 namespace Pixel.Automation.Docker.Agent.Handlers;
@@ -14,7 +15,7 @@ internal class EdgeWebDriverHandler : WebDriverHandler
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public EdgeWebDriverHandler(IHostService dockerHost) : base(dockerHost)
+    public EdgeWebDriverHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     { 
     }
 
@@ -28,11 +29,12 @@ internal class EdgeWebDriverHandler : WebDriverHandler
     protected override string GetNetworkTemplateName()
     {
         return "pixel-webdriver-edge-{0}";
-    }
+    }  
 
-    /// </inheritdoc> 
-    protected override string GetDockerTemplateFile()
+    protected override void AddDefaultParameters(Dictionary<string, string> defaultParameters)
     {
-        return "webdriver-edge-standalone.yml";
+        defaultParameters.Add("selenium-standalone-image", " selenium/standalone-edge:latest");
+        defaultParameters.Add("grid-address", "http://edge-standalone:4444");
+        base.AddDefaultParameters(defaultParameters);
     }
 }

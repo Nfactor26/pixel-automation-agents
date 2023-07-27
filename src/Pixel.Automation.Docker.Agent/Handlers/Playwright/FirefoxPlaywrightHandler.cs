@@ -1,4 +1,5 @@
 ﻿using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Docker.Agent.Handlers.Playwright;
 
 namespace Pixel.Automation.Docker.Agent.Handlers;
@@ -14,7 +15,7 @@ internal class FirefoxPlaywrightHandler : PlaywrightHandler
     /// contructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public FirefoxPlaywrightHandler(IHostService dockerHost) : base(dockerHost)
+    public FirefoxPlaywrightHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     {
     }
 
@@ -22,11 +23,5 @@ internal class FirefoxPlaywrightHandler : PlaywrightHandler
     protected override string GetBrowserName()
     {
         return "firefox";
-    }
-
-    /// </inheritdoc> 
-    protected override string GetDockerTemplateFile()
-    {
-        return "playwright-firefox.yml";
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Dawn;
 using Ductus.FluentDocker.Extensions;
 using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Agents.Core.Contracts;
 using Serilog;
 
@@ -13,23 +14,26 @@ internal abstract class DockerComposeExecutionHandler : ITestExecutionHandler
 {
     protected readonly ILogger logger = Log.ForContext<DockerComposeExecutionHandler>();
     protected readonly IHostService dockerHost;
+    protected readonly DockerTemplateHandler templateHandler;
 
     /// <summary>
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public DockerComposeExecutionHandler(IHostService dockerHost)
+    public DockerComposeExecutionHandler(IHostService dockerHost, TemplateHandler templateHandler)
     {
-        this.dockerHost = Guard.Argument(dockerHost, nameof(dockerHost)).NotNull().Value;  
+        Guard.Argument(templateHandler, nameof(templateHandler)).NotNull().Compatible<DockerTemplateHandler>();
+        this.dockerHost = Guard.Argument(dockerHost, nameof(dockerHost)).NotNull().Value;
+        this.templateHandler = templateHandler as DockerTemplateHandler;
     }
    
     /// </inheritdoc>  
-    public virtual async Task ExecuteTestAsync(string templateName, Dictionary<string, string> arguments)
-    {       
-        var networks = CreateRequiredNetworks(templateName, arguments);
+    public virtual async Task ExecuteTestAsync(string templateName)
+    {
+        var networks = CreateRequiredNetworks(templateName, templateHandler.Parameters);
         try
         {
-            var file = await GetComposeFile(templateName, networks, arguments);
+            var file = await GetComposeFile(templateName, networks, templateHandler.Parameters);
 
             using (var svc = new Ductus.FluentDocker.Builders.Builder()
                               .UseContainer()
@@ -70,13 +74,28 @@ internal abstract class DockerComposeExecutionHandler : ITestExecutionHandler
     /// <param name="templateName"></param>
     /// <param name="networks"></param>
     /// <returns></returns>
-    protected abstract Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> arguments);
+    protected abstract Task<string> GetComposeFile(string templateName, IEnumerable<INetworkService> networks, Dictionary<string, string> parameters);
 
     /// <summary>
     /// Create networks required for the execution
     /// </summary>
     /// <param name="templateName"></param>
     /// <returns></returns>
-    protected abstract IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> arguments);
+    protected abstract IEnumerable<INetworkService> CreateRequiredNetworks(string templateName, Dictionary<string, string> parameters);
+
+    /// <summary>
+    /// Add default values to template handler -> parameters if missing
+    /// </summary>
+    /// <param name="defaultParameters"></param>
+    protected virtual void AddDefaultParameters(Dictionary<string, string> defaultParameters)
+    {
+        foreach(var parameter in defaultParameters)
+        {
+            if(!templateHandler.Parameters.ContainsKey(parameter.Key))
+            {
+                templateHandler.Parameters.Add(parameter.Key, parameter.Value);
+            }
+        }
+    }
 
 }

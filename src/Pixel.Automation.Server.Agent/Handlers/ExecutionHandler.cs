@@ -7,26 +7,24 @@ using System.Diagnostics;
 namespace Pixel.Automation.Server.Agent.Handlers;
 
 /// <summary>
-/// Execution handler to run test cases on server machine
+/// Implemenation of <see cref="ITestExecutionHandler"/>
 /// </summary>
-internal class ServerRemoteExecutionHandler : ITestExecutionHandler
+internal abstract class ExecutionHandler : ITestExecutionHandler
 {
-    private readonly ILogger logger = Log.ForContext<ServerRemoteExecutionHandler>(); 
-    private readonly IConfiguration config;
-  
-    public static string Name = "server-remote";
+    private readonly ILogger logger = Log.ForContext<ExecutionHandler>(); 
+    private readonly IConfiguration config;  
    
     /// <summary>
     /// constructor
     /// </summary>
     /// <param name="config"></param>
-    public ServerRemoteExecutionHandler(IConfiguration config)
+    public ExecutionHandler(IConfiguration config)
     {
         this.config = Guard.Argument(config, nameof(config)).NotNull().Value;
     }
 
     /// </inheritdoc>    
-    public async Task ExecuteTestAsync(string templateName, Dictionary<string, string> arguments)
+    public async Task ExecuteTestAsync(string templateName)
     {
         try
         {

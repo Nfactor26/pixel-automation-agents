@@ -1,5 +1,6 @@
 ﻿using Ductus.FluentDocker.Services;
 using Ductus.FluentDocker.Services.Extensions;
+using Pixel.Automation.Agents.Core;
 
 namespace Pixel.Automation.Docker.Agent.Handlers.Playwright;
 
@@ -8,21 +9,38 @@ namespace Pixel.Automation.Docker.Agent.Handlers.Playwright;
 /// </summary>
 internal abstract class PlaywrightHandler : DockerComposeExecutionHandler
 {
-    public PlaywrightHandler(IHostService dockerHost) : base(dockerHost)
+    protected readonly Dictionary<string, string> defaultParameters = new Dictionary<string, string>()
     {
-        
+        { "pixel-run-image", "pixel-test-runner:latest" }
+    };
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="dockerHost"></param>
+    /// <param name="templateHandler"></param>
+    public PlaywrightHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
+    {
+        AddDefaultParameters(defaultParameters);
     }
 
-    protected abstract string GetDockerTemplateFile();
+    /// <summary>
+    /// Get the template file for docker compose
+    /// </summary>
+    /// <returns></returns>
+    protected virtual string GetDockerTemplateFile()
+    {
+        return templateHandler.DockerComposeFileName;
+    }
 
     protected abstract string GetBrowserName();
 
-    public override async Task ExecuteTestAsync(string templateName, Dictionary<string, string> arguments)
+    public override async Task ExecuteTestAsync(string templateName)
     {
-        var networks = CreateRequiredNetworks(templateName, arguments);
+        var networks = CreateRequiredNetworks(templateName, templateHandler.Parameters);
         try
         {
-            var file = await GetComposeFile(templateName, networks, arguments);
+            var file = await GetComposeFile(templateName, networks, templateHandler.Parameters);
 
             using (var svc = new Ductus.FluentDocker.Builders.Builder()
                               .UseContainer()
@@ -81,7 +99,7 @@ internal abstract class PlaywrightHandler : DockerComposeExecutionHandler
             throw new FileNotFoundException("File doesn't exist", templateToUse);
         }
         string templateContent = await File.ReadAllTextAsync(templateToUse);
-        string generatedContent = string.Format(templateContent, templateName);
+        string generatedContent = string.Format(templateContent, templateHandler.Parameters["pixel-run-image"], templateName);
         string templateDirectory = Path.Combine(Environment.CurrentDirectory, "Temp", $"{templateName}-with-{GetBrowserName()}");
         Directory.CreateDirectory(templateDirectory);
         var saveToLocation = Path.Combine(templateDirectory, GetDockerTemplateFile());
