@@ -1,4 +1,5 @@
 ﻿using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Docker.Agent.Handlers.Playwright;
 
 namespace Pixel.Automation.Docker.Agent.Handlers;
@@ -14,7 +15,7 @@ internal class EdgePlaywrightHandler : PlaywrightHandler
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public EdgePlaywrightHandler(IHostService dockerHost) : base(dockerHost)
+    public EdgePlaywrightHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     {
     }
 
@@ -23,11 +24,4 @@ internal class EdgePlaywrightHandler : PlaywrightHandler
     {
         return "edge";
     }
-
-    /// </inheritdoc> 
-    protected override string GetDockerTemplateFile()
-    {
-        return "playwright-edge.yml";
-    }
-
 }

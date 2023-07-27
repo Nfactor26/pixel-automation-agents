@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Pixel.Automation.Agents.Core;
+using Pixel.Automation.Agents.Core.Contracts;
 using Pixel.Automation.Server.Agent.Handlers;
 using Serilog;
 using Serilog.Events;
@@ -23,8 +24,7 @@ using IHost host = Host.CreateDefaultBuilder(args).Build();
 var switchMappings = new Dictionary<string, string>()
            {
                { "--name", "name" },
-               { "--group", "group" },
-               { "--hubEndPoint", "hubEndPoint" },
+               { "--group", "group" },           
                { "--pixel-executable", "pixelExecutable" }
            };
 
@@ -51,7 +51,7 @@ var agent = new
     Group = agentGroup,
     MachineName = Environment.MachineName,
     OSDescription = RuntimeInformation.OSDescription,
-    RegisteredHadlers = new string[] { ServerRemoteExecutionHandler.Name }
+    RegisteredHadlers = new string[] { WindowsExecutionHandler.Name, LinuxExecutionHandler.Name }
 };
 
 var connection = new HubConnectionBuilder()
@@ -74,12 +74,19 @@ connection.On<string, string, string>("ExecuteTemplate", async (template, handle
         Guard.Argument(template, nameof(template)).NotNull().NotEmpty();
         Guard.Argument(handler, nameof(handler)).NotNull().NotEmpty();
         logger.Information("Received request to execute template {0} with handler {1}", template, handler);
-        if (!handler.Equals(ServerRemoteExecutionHandler.Name))
+        ITestExecutionHandler executionHadler;
+        switch (handler)
         {
-            throw new Exception($"Agent doesn't have a handler for type : {handler}");
+            case "windows-server":
+                executionHadler = new WindowsExecutionHandler(config);
+                break;
+            case "linux-server":
+                executionHadler = new LinuxExecutionHandler(config);
+                break;          
+            default:
+                throw new NotSupportedException($"Handler {handler} is not supported");
         }
-        var executionHadler = new ServerRemoteExecutionHandler(config);
-        _ = executionHadler.ExecuteTestAsync(template, null);
+        _ = executionHadler.ExecuteTestAsync(template);      
         await Task.CompletedTask;
     }
     catch (Exception ex)
@@ -113,4 +120,3 @@ async Task OnConnectionClosed(Exception ex)
 await host.RunAsync();
 
 logger.Information("Agent is shutting down");
-await connection.InvokeAsync("DeRegisterAgent", agent);

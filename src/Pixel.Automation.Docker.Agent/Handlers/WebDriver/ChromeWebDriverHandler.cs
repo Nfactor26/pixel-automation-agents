@@ -1,4 +1,5 @@
 ﻿using Ductus.FluentDocker.Services;
+using Pixel.Automation.Agents.Core;
 using Pixel.Automation.Docker.Agent.Handlers.WebDriver;
 
 namespace Pixel.Automation.Docker.Agent.Handlers;
@@ -10,11 +11,13 @@ internal class ChromeWebDriverHandler : WebDriverHandler
 {
     public static string Name = "docker-webdriver-chrome";
 
+  
+
     /// <summary>
     /// constructor
     /// </summary>
     /// <param name="dockerHost"></param>
-    public ChromeWebDriverHandler(IHostService dockerHost) : base(dockerHost)
+    public ChromeWebDriverHandler(IHostService dockerHost, TemplateHandler templateHandler) : base(dockerHost, templateHandler)
     {
 
     }
@@ -31,9 +34,10 @@ internal class ChromeWebDriverHandler : WebDriverHandler
         return "pixel-webdriver-chrome-{0}";
     }
 
-    /// </inheritdoc> 
-    protected override string GetDockerTemplateFile()
+    protected override void AddDefaultParameters(Dictionary<string, string> defaultParameters)
     {
-        return "webdriver-chrome-standalone.yml";
+        defaultParameters.Add("selenium-standalone-image", " selenium/standalone-chrome:latest");
+        defaultParameters.Add("grid-address", "http://chrome-standalone:4444");
+        base.AddDefaultParameters(defaultParameters);
     }
 }

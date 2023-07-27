@@ -10,6 +10,7 @@ using Pixel.Automation.Agents.Core.Contracts;
 using Pixel.Automation.Docker.Agent.Handlers;
 using Serilog;
 using Serilog.Events;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 Log.Logger = new LoggerConfiguration()
@@ -24,8 +25,7 @@ using IHost host = Host.CreateDefaultBuilder(args).Build();
 var switchMappings = new Dictionary<string, string>()
            {
                { "--name", "name" },
-               { "--group", "group" },
-               { "--hubEndPoint", "hubEndPoint" }
+               { "--group", "group" }
            };
 
 IConfiguration config = new ConfigurationBuilder()
@@ -36,6 +36,7 @@ IConfiguration config = new ConfigurationBuilder()
 
 string agentName = config.GetValue<string>("name") ?? throw new Exception("name is not configured");
 string agentGroup = config.GetValue<string>("group") ?? "server-agents-default-group";
+string serviceEndPoint = config.GetValue<string>("serviceEndPoint") ?? throw new Exception("serviceEndPoint is not configured");
 string hubEndPoint = config.GetValue<string>("hubEndPoint") ?? throw new Exception("hubEndPoint is not configured");
 
 Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "Temp"));
@@ -66,6 +67,9 @@ var connection = new HubConnectionBuilder()
 await connection.StartAsync();
 await connection.InvokeAsync("RegisterAgent", agent);
 
+var restClientFactory = new RestClientFactory(serviceEndPoint);
+var handlersService = new HandlersService(restClientFactory);
+
 connection.On("CanExecuteNew", () =>
 {
     bool canExecuteNew = true;
@@ -81,46 +85,55 @@ connection.On<string, string, string>("ExecuteTemplate", async (template, handle
         Guard.Argument(handler, nameof(handler)).NotNull().NotEmpty();
         logger.Information("Received request to execute template {0} with handler {1}", template, handler);
         ITestExecutionHandler executionHadler;
-        switch (handler)
+        TemplateHandler templateHandler = await handlersService.GetHandlerByNameAsync(handler);   
+        if(templateHandler is DockerTemplateHandler dockerTemplateHandler)
         {
-            case "docker-pixel-run":
-                executionHadler = new PixelRunHandler(dockerHost);
-                break;
-            case "docker-webdriver-chrome":
-                executionHadler = new ChromeWebDriverHandler(dockerHost);
-                break;
-            case "docker-webdriver-edge":
-                executionHadler = new EdgeWebDriverHandler(dockerHost);
-                break;
-            case "docker-webdriver-firefox":
-                executionHadler = new FirefoxWebDriverHandler(dockerHost);
-                break;
-            case "docker-playwright-chrome":
-                executionHadler = new ChromePlaywrightHandler(dockerHost);
-                break;
-            case "docker-playwright-edge":
-                executionHadler = new EdgePlaywrightHandler(dockerHost);
-                break;
-            case "docker-playwright-firefox":
-                executionHadler = new FirefoxPlaywrightHandler(dockerHost);
-                break;
-            default:
-                throw new NotSupportedException($"Handler {handler} is not supported");
+            await handlersService.DownloadComposeFileAsync(dockerTemplateHandler.DockerComposeFileName);
         }
-        Dictionary<string, string> handlerArgs = new();
         if (!string.IsNullOrEmpty(arguments))
         {
             foreach (var arg in arguments.Split(','))
             {
                 var keyValuePair = arg.Split('=');
-                if(keyValuePair.Length != 2)
+                if (keyValuePair.Length != 2)
                 {
                     throw new ArgumentException($"Argument {arg} could not be parsed.");
                 }
-                handlerArgs.Add(keyValuePair[0], keyValuePair[1]);
+                if(templateHandler.Parameters.ContainsKey(keyValuePair[0]))
+                {
+                    templateHandler.Parameters[keyValuePair[0]] = keyValuePair[1];
+                    continue;
+                }
+                templateHandler.Parameters.Add(keyValuePair[0], keyValuePair[1]);
             }
         }
-        _ = executionHadler.ExecuteTestAsync(template, handlerArgs);
+        switch (handler)
+        {
+            case "docker-pixel-run":               
+                executionHadler = new PixelRunHandler(dockerHost, templateHandler);
+                break;
+            case "docker-webdriver-chrome":
+                executionHadler = new ChromeWebDriverHandler(dockerHost, templateHandler);
+                break;
+            case "docker-webdriver-edge":
+                executionHadler = new EdgeWebDriverHandler(dockerHost, templateHandler);
+                break;
+            case "docker-webdriver-firefox":
+                executionHadler = new FirefoxWebDriverHandler(dockerHost, templateHandler);
+                break;
+            case "docker-playwright-chrome":
+                executionHadler = new ChromePlaywrightHandler(dockerHost, templateHandler);
+                break;
+            case "docker-playwright-edge":
+                executionHadler = new EdgePlaywrightHandler(dockerHost, templateHandler);
+                break;
+            case "docker-playwright-firefox":
+                executionHadler = new FirefoxPlaywrightHandler(dockerHost, templateHandler);
+                break;
+            default:
+                throw new NotSupportedException($"Handler {handler} is not supported");
+        }        
+        _ = executionHadler.ExecuteTestAsync(template);
         await Task.CompletedTask;
     }
     catch (Exception ex)
@@ -154,4 +167,3 @@ async Task OnConnectionClosed(Exception ex)
 await host.RunAsync();
 
 logger.Information("Agent is shutting down");
-await connection.InvokeAsync("DeRegisterAgent", agent);

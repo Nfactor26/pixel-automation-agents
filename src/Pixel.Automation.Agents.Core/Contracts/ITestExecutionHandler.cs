@@ -11,5 +11,6 @@ public interface ITestExecutionHandler
     /// </summary>
     /// <param name="templateName"></param>
     /// <returns></returns>
-    Task ExecuteTestAsync(string templateName, Dictionary<string,string> arguments);
+    Task ExecuteTestAsync(string templateName);
+   
 }
